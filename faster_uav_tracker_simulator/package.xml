@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package format="2">
+    <name>faster_uav_tracker_simulator</name>
+    <version>1.0.3</version>
+    <description>simulator module for faster uav tracker</description>
+
+    <maintainer email="yipeng3@mail2.sysu.edu.cn">Peng Yi</maintainer>
+    <license>TODO</license>
+
+    <buildtool_depend>catkin</buildtool_depend>
+    <build_depend>roscpp</build_depend>
+    <build_depend>px4_cmd</build_depend>
+    <build_depend>std_msgs</build_depend>
+    <build_depend>gazebo_msgs</build_depend>
+    <exec_depend>gazebo_msgs</exec_depend>
+    <build_depend>tf</build_depend>
+    <exec_depend>tf</exec_depend>
+    <exec_depend>std_msgs</exec_depend>
+    <exec_depend>px4_cmd</exec_depend>
+    <exec_depend>message_runtime</exec_depend>
+</package>

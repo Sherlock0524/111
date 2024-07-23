@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+    <!-- Spawn ball model-->
+    <arg name="ball_dir" default="$(find faster_uav_tracker_simulator)/models/RedBall/model.sdf" />
+    <node name="spawn_redball" pkg="gazebo_ros" type="spawn_model" output="screen"
+        args="-sdf -file $(arg ball_dir) -model ball -x 5 -y 0 -z 2" />
+
+    <!-- PX4 Simulation -->
+    <arg name="est" default="ekf2" />
+    <arg name="world" default="$(find mavlink_sitl_gazebo)/worlds/empty.world" />
+    <arg name="gui" default="true" />
+    <arg name="debug" default="false" />
+    <arg name="verbose" default="false" />
+    <arg name="paused" default="false" />
+    <arg name="topic_type" default="uav_{ID}" />
+    <arg name="interactive" default="true" />
+    <arg name="sim_dir" default="" />
+    <!-- gazebo simulation -->
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <arg name="gui" value="$(arg gui)" />
+        <arg name="world_name" value="$(arg world)" />
+        <arg name="debug" value="$(arg debug)" />
+        <arg name="verbose" value="$(arg verbose)" />
+        <arg name="paused" value="$(arg paused)" />
+    </include>
+    <!--uav_0: iris - Realsense Camera -->
+    <group ns="uav_0">
+        <arg name="vehicle" value="iris" />
+        <arg name="sensor" value="Realsense Camera" />
+        <arg name="ID" value="0" />
+        <arg name="fcu_url" value="udp://:14540@localhost:34580" />
+        <arg name="model" value="iris_realsense_camera" />
+        <arg name="sensor_model_path" value="file://$(find faster_uav_tracker_simulator)/models/realsense_camera"/>
+        <arg name="x" value="0.0" />
+        <arg name="y" value="0.0" />
+        <arg name="z" value="0.0" />
+        <arg name="R" value="0.000000" />
+        <arg name="P" value="0.000000" />
+        <arg name="Y" value="0.000000" />
+        <arg name="mavlink_id" value="$(eval 1 + arg(&apos;ID&apos;))" />
+        <arg name="mavlink_udp_port" value="24560" />
+        <arg name="mavlink_tcp_port" value="4560" />
+        <arg name="sdk_udp_port" value="14540" />
+        <arg name="mavlink_cam_udp_port" value="14530" />
+        <arg name="gst_udp_port" value="$(eval 5600 + arg(&apos;ID&apos;))" />
+        <arg name="video_uri" value="$(eval 5600 + arg(&apos;ID&apos;))" />
+        <!-- generate sdf vehicle model -->
+        <arg name="cmd"
+            value="$(find px4_cmd)/scripts/model_gen.py --stdout --sensor_model_path=$(arg sensor_model_path) --mavlink_id=$(arg mavlink_id) --mavlink_udp_port=$(arg mavlink_udp_port) --sdk_udp_port=$(arg sdk_udp_port) --mavlink_tcp_port=$(arg mavlink_tcp_port) --gst_udp_port=$(arg gst_udp_port) --video_uri=$(arg video_uri) --mavlink_cam_udp_port=$(arg mavlink_cam_udp_port) $(find faster_uav_tracker_simulator)/models/$(arg model)/$(arg model).sdf.jinja $(find faster_uav_tracker_simulator)" />
+        <param command="$(arg cmd)" name="sdf_$(arg vehicle)$(arg ID)" />
+        <param name="vehicle" value="iris" />
+        <param name="sensor" value="Realsense Camera" />
+        <param name="init_x" value="0.0" />
+        <param name="init_y" value="0.0" />
+        <param name="init_z" value="0.0" />
+        <param name="init_R" value="0.000000" />
+        <param name="init_P" value="0.000000" />
+        <param name="init_Y" value="0.000000" />
+        <!-- px4 -->
+        <env name="PX4_SIM_MODEL" value="$(arg vehicle)" />
+        <env name="PX4_ESTIMATOR" value="$(arg est)" />
+        <arg unless="$(arg interactive)" name="px4_command_arg1" value="" />
+        <arg if="$(arg interactive)" name="px4_command_arg1" value="-d" />
+        <node name="sitl_$(arg ID)" pkg="px4" type="px4" output="screen"
+            args="$(find px4_cmd)/config/px4/etc -s etc/init.d-posix/rcS -i $(arg ID) -w uav_0 $(arg px4_command_arg1)" />
+        <!-- spawn model -->
+        <node name="$(anon vehicle_spawn)" pkg="gazebo_ros" type="spawn_model" output="log"
+            args="-sdf -param sdf_$(arg vehicle)$(arg ID) -model uav_0 -x $(arg x) -y $(arg y) -z $(arg z) -R $(arg R) -P $(arg P) -Y $(arg Y)" />
+        <!-- mavros -->
+        <include file="$(find px4_cmd)/launch/mavros.launch">
+            <arg name="fcu_url" value="$(arg fcu_url)" />
+            <arg name="gcs_url" value="" />
+            <arg name="tgt_system" value="$(eval 1 + arg(&apos;ID&apos;))" />
+            <arg name="tgt_component" value="1" />
+            <arg name="log_output" value="log" />
+        </include>
+    </group>
+    
+    <!-- Start faster uav tracker simulator -->
+    <node name="faster_uav_tracker_simulator" pkg="faster_uav_tracker_simulator" type="run" output="screen"/>
+</launch>
